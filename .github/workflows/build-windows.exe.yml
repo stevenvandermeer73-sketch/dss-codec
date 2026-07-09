@@ -1,4 +1,4 @@
-name: Build Windows EXE
+name: Build Windows EXE - DEBUG
 
 on:
   push:
@@ -11,6 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Show directory structure
+        run: ls -R
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -19,26 +22,31 @@ jobs:
       - name: Install MinGW
         run: sudo apt-get update && sudo apt-get install -y mingw-w64
 
-      - name: Build Windows EXE
+      - name: Verify MinGW
+        run: x86_64-w64-mingw32-gcc --version
+
+      - name: Build with full output
         run: |
           cd dss-codec
-          cargo build --release --target x86_64-pc-windows-gnu || {
-            echo "Build failed, trying with verbose output..."
-            cargo build --release --target x86_64-pc-windows-gnu -v
+          cargo build --release --target x86_64-pc-windows-gnu 2>&1 | tee build.log
+          if [ $? -ne 0 ]; then
+            echo "::error::Build failed! Check build.log above"
+            cat build.log
             exit 1
-          }
+          fi
+
+      - name: List built files
+        run: find target -name "*.exe" -o -name "Cargo.toml"
 
       - name: Package EXE
+        if: success()
         run: |
           mkdir -p release
-          # Find the exe regardless of exact path
-          find target -name "dss-decode.exe" -exec cp {} release/ds2-to-wav.exe \;
-          # Also keep original name
-          find target -name "dss-decode.exe" -exec cp {} release/ \;
+          cp dss-codec/target/x86_64-pc-windows-gnu/release/dss-decode.exe release/ds2-to-wav.exe
 
       - name: Upload Artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: ds2-to-wav-windows
           path: release/
-          compression-level: 9
