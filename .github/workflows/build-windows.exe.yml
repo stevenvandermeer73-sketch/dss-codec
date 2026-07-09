@@ -22,20 +22,23 @@ jobs:
       - name: Build Windows EXE
         run: |
           cd dss-codec
-          cargo build --release --target x86_64-pc-windows-gnu
+          cargo build --release --target x86_64-pc-windows-gnu || {
+            echo "Build failed, trying with verbose output..."
+            cargo build --release --target x86_64-pc-windows-gnu -v
+            exit 1
+          }
 
-      - name: Rename and package EXE
+      - name: Package EXE
         run: |
-          cd dss-codec/target/x86_64-pc-windows-gnu/release
-          mv dss-decode.exe ds2-to-wav.exe
-          strip ds2-to-wav.exe
-          cd ../../../../..
           mkdir -p release
-          cp dss-codec/target/x86_64-pc-windows-gnu/release/ds2-to-wav.exe release/
-          cp dss-codec/target/x86_64-pc-windows-gnu/release/dss-decode.exe release/
+          # Find the exe regardless of exact path
+          find target -name "dss-decode.exe" -exec cp {} release/ds2-to-wav.exe \;
+          # Also keep original name
+          find target -name "dss-decode.exe" -exec cp {} release/ \;
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ds2-to-wav-windows
           path: release/
+          compression-level: 9
