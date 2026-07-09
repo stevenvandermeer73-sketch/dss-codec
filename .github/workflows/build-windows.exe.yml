@@ -12,10 +12,8 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
-          toolchain: stable
           target: x86_64-pc-windows-gnu
 
       - name: Install MinGW
@@ -34,19 +32,10 @@ jobs:
           cd ../../../../..
           mkdir -p release
           cp dss-codec/target/x86_64-pc-windows-gnu/release/ds2-to-wav.exe release/
-          cp dss-codec/target/x86_64-pc-windows-gnu/release/dss-decode.exe release/  # Original name
+          cp dss-codec/target/x86_64-pc-windows-gnu/release/dss-decode.exe release/
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ds2-to-wav-windows
           path: release/
-
-      - name: Create Release (on tag)
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: release/*
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
